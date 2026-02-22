@@ -51,38 +51,36 @@
   /* ══════════════════════════════════════════════════════
      localStorage Storage Shim — mirrors the window.storage API
   ══════════════════════════════════════════════════════ */
-  window.storage = {
-    _key(key, shared){ return (shared ? 'ttfs_' : 'ttf_') + key; },
-    async get(key, shared=false){
-      const val = localStorage.getItem(this._key(key,shared));
-      if(val===null) throw new Error('Key not found: '+key);
-      return {key, value:val, shared};
-    },
-    async set(key, value, shared=false){
-      try{
-        const v = typeof value==='string' ? value : JSON.stringify(value);
-        localStorage.setItem(this._key(key,shared), v);
-        return {key, value:v, shared};
-      }catch(e){ console.error('Storage.set failed:',e); return null; }
-    },
-    async delete(key, shared=false){
-      localStorage.removeItem(this._key(key,shared));
-      return {key, deleted:true, shared};
-    },
-    async list(prefix='', shared=false){
-      const pfx = this._key(prefix, shared);
-      const raw = (shared ? 'ttfs_' : 'ttf_');
-      const keys = Object.keys(localStorage)
-        .filter(k=>k.startsWith(pfx))
-        .map(k=>k.slice(raw.length));
-      return {keys, prefix, shared};
-    }
-  };
-  </script>
+  const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+const SUPABASE_KEY = 'your-anon-key-here';
 
-  <script type="text/babel" data-presets="react">
-const { useState, useEffect, useRef, useCallback } = React;
-
+window.storage = {
+  async get(key, shared=false) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/game_data?key=eq.${encodeURIComponent(key)}&shared=eq.${shared}&select=value`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer '+SUPABASE_KEY }
+    });
+    const data = await res.json();
+    if (!data.length) throw new Error('Key not found');
+    return { key, value: data[0].value, shared };
+  },
+  async set(key, value, shared=false) {
+    const v = typeof value==='string' ? value : JSON.stringify(value);
+    await fetch(`${SUPABASE_URL}/rest/v1/game_data`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer '+SUPABASE_KEY,
+                 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ key, value: v, shared, updated_at: new Date() })
+    });
+    return { key, value: v, shared };
+  },
+  async delete(key, shared=false) {
+    await fetch(`${SUPABASE_URL}/rest/v1/game_data?key=eq.${encodeURIComponent(key)}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer '+SUPABASE_KEY }
+    });
+    return { key, deleted: true };
+  }
+};
 /* ══════════════════════════════════════════════════════════
    GLOBAL STYLES
 ══════════════════════════════════════════════════════════ */
