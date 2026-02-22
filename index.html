@@ -2,71 +2,82 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
   <title>Tic Tac Fun 🎮</title>
-  <meta name="description" content="The ultimate tic tac toe experience — 6 game modes, AI bots, tournaments, 300 collectible markers, and more!"/>
+  <meta name="description" content="The ultimate tic tac toe experience — 6 game modes, AI bots, 300 collectible emoji markers, tournaments, and more!"/>
+  <meta name="theme-color" content="#0a0a0f"/>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>"/>
+
+  <!-- Open Graph for sharing -->
+  <meta property="og:title" content="Tic Tac Fun 🎮"/>
+  <meta property="og:description" content="6 game modes, AI bots, 300 collectible markers, tournaments & more!"/>
+  <meta property="og:type" content="website"/>
+
+  <!-- React + Babel (no build step needed!) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; background: #0a0a0f; }
-    #root { min-height: 100vh; }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;background:#0a0a0f;overscroll-behavior:none;}
+    #root{min-height:100vh;}
+    /* Scrollbar styling */
+    ::-webkit-scrollbar{width:6px;height:6px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:3px;}
+    ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.22);}
     /* Loading screen */
-    #loading {
-      position: fixed; inset: 0; background: #0a0a0f;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 9999; font-family: sans-serif; color: #888;
+    #loading{
+      position:fixed;inset:0;background:#0a0a0f;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      z-index:9999;font-family:sans-serif;
     }
-    #loading .logo { font-size: 4rem; margin-bottom: 16px; animation: spin 2s linear infinite; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    #loading p { font-size: 0.9rem; margin-top: 12px; }
+    #loading .logo{font-size:4rem;margin-bottom:16px;animation:spin 1.8s linear infinite;}
+    #loading .ttitle{font-size:2rem;font-weight:900;background:linear-gradient(135deg,#a855f7,#4f46e5,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px;}
+    #loading .sub{color:#444;font-size:0.85rem;}
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
   <div id="loading">
     <div class="logo">🎮</div>
-    <div style="font-size:1.8rem;font-weight:900;background:linear-gradient(135deg,#a855f7,#4f46e5,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Tic Tac Fun</div>
-    <p>Loading game...</p>
+    <div class="ttitle">Tic Tac Fun</div>
+    <div class="sub">Loading… your adventure awaits!</div>
   </div>
   <div id="root"></div>
 
   <script>
-    /* ══════════════════════════════════════════════════════
-       localStorage-based Storage Shim
-       Mimics the window.storage async API
-    ══════════════════════════════════════════════════════ */
-    window.storage = {
-      get: async (key, shared = false) => {
-        const k = (shared ? 'ttf_shared_' : 'ttf_') + key;
-        const val = localStorage.getItem(k);
-        if (val === null) throw new Error('Key not found: ' + key);
-        return { key, value: val, shared };
-      },
-      set: async (key, value, shared = false) => {
-        try {
-          const k = (shared ? 'ttf_shared_' : 'ttf_') + key;
-          localStorage.setItem(k, typeof value === 'string' ? value : JSON.stringify(value));
-          return { key, value, shared };
-        } catch (e) {
-          console.error('Storage set failed:', e);
-          return null;
-        }
-      },
-      delete: async (key, shared = false) => {
-        const k = (shared ? 'ttf_shared_' : 'ttf_') + key;
-        localStorage.removeItem(k);
-        return { key, deleted: true, shared };
-      },
-      list: async (prefix = '', shared = false) => {
-        const pfx = (shared ? 'ttf_shared_' : 'ttf_') + prefix;
-        const keys = Object.keys(localStorage)
-          .filter(k => k.startsWith(pfx))
-          .map(k => k.slice((shared ? 'ttf_shared_' : 'ttf_').length));
-        return { keys, prefix, shared };
-      }
-    };
+  /* ══════════════════════════════════════════════════════
+     localStorage Storage Shim — mirrors the window.storage API
+  ══════════════════════════════════════════════════════ */
+  window.storage = {
+    _key(key, shared){ return (shared ? 'ttfs_' : 'ttf_') + key; },
+    async get(key, shared=false){
+      const val = localStorage.getItem(this._key(key,shared));
+      if(val===null) throw new Error('Key not found: '+key);
+      return {key, value:val, shared};
+    },
+    async set(key, value, shared=false){
+      try{
+        const v = typeof value==='string' ? value : JSON.stringify(value);
+        localStorage.setItem(this._key(key,shared), v);
+        return {key, value:v, shared};
+      }catch(e){ console.error('Storage.set failed:',e); return null; }
+    },
+    async delete(key, shared=false){
+      localStorage.removeItem(this._key(key,shared));
+      return {key, deleted:true, shared};
+    },
+    async list(prefix='', shared=false){
+      const pfx = this._key(prefix, shared);
+      const raw = (shared ? 'ttfs_' : 'ttf_');
+      const keys = Object.keys(localStorage)
+        .filter(k=>k.startsWith(pfx))
+        .map(k=>k.slice(raw.length));
+      return {keys, prefix, shared};
+    }
+  };
   </script>
 
   <script type="text/babel" data-presets="react">
@@ -643,46 +654,214 @@ function GameShell({title,icon,onBack,children,turn,winner,draw,onRematch,extraI
 }
 
 /* ══════════════════════════════════════════════════════════
-   SETUP SCREEN
+   SETUP SCREEN  (includes marker picking for ALL games)
 ══════════════════════════════════════════════════════════ */
-function SetupScreen({gameTitle,gameIcon,onBack,onStart}){
+function SetupScreen({gameTitle,gameIcon,onBack,onStart,xtraData,username}){
+  const[step,setStep]=useState(1); // 1=mode/diff, 2=p1 marker, 3=p2/bot marker, 4=vs screen
   const[mode,setMode]=useState(null);
   const[diff,setDiff]=useState(null);
-  const canStart=mode==="human"||(mode==="bot"&&diff);
+  const[marker1,setMarker1]=useState(null);
+  const[marker2,setMarker2]=useState(null);
+  const[conflict,setConflict]=useState(false);
+
+  const owned=xtraData?.markers||[1,2,3,4,5,6];
+  const allIds=MARKERS.map(m=>m.id);
+
+  const canAdvanceStep1=mode==="human"||(mode==="bot"&&diff);
+
+  const confirmStep1=()=>{ if(canAdvanceStep1) setStep(2); };
+
+  const confirmStep2=()=>{ if(!marker1) return; setStep(3); };
+
+  const confirmStep3=()=>{
+    if(mode==="human"&&!marker2)return;
+    if(mode==="human"&&marker1===marker2){setConflict(true);setTimeout(()=>setConflict(false),1800);return;}
+    setStep(4);
+  };
+
+  const launch=()=>{
+    const m1=MARKERS_BY_ID[marker1];
+    const m2=MARKERS_BY_ID[marker2];
+    const settings={
+      vsBot:mode==="bot",
+      difficulty:diff,
+      markerEmoji1:m1?.emoji||"✕",
+      markerEmoji2:m2?.emoji||"○",
+    };
+    onStart(settings);
+  };
+
+  const QuickMarkerGrid=({owned:ids,selected,onSelect,exclude,allMarkers})=>{
+    const pool=MARKERS.filter(m=>(allMarkers?true:ids.includes(m.id))&&m.id!==exclude);
+    return(
+      <div style={{display:"flex",flexWrap:"wrap",gap:6,maxHeight:180,overflowY:"auto",padding:"4px 0",
+        scrollbarWidth:"thin",scrollbarColor:"rgba(255,255,255,0.15) transparent"}}>
+        {pool.map(m=>{
+          const r=RARITY[m.rarity];
+          return(
+            <button key={m.id} onClick={()=>onSelect(m.id===selected?null:m.id)}
+              title={`${m.name} · ${r.label} · ${m.theme}`}
+              style={{width:52,height:52,borderRadius:12,border:`2px solid ${selected===m.id?r.color:"rgba(255,255,255,0.1)"}`,
+                background:selected===m.id?r.bg:"rgba(255,255,255,0.04)",
+                fontSize:"1.7rem",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+                transition:"all 0.15s",transform:selected===m.id?"scale(1.12)":"scale(1)",
+                boxShadow:selected===m.id?`0 0 14px ${r.glow}`:"none",fontFamily:"inherit",
+                opacity:ids.includes(m.id)||allMarkers?1:0.25}}>
+              {m.emoji}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const ProgressBar=({total,current})=>(
+    <div style={{display:"flex",gap:6,marginBottom:20}}>
+      {Array(total).fill(0).map((_,i)=>(
+        <div key={i} style={{flex:1,height:4,borderRadius:4,background:i<current?"#7c3aed":"rgba(255,255,255,0.1)",transition:"background 0.3s"}}/>
+      ))}
+    </div>
+  );
+
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0a0a0f,#0d0d1a,#0a0f1a)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-      <div className="slide-in" style={{width:"100%",maxWidth:420,background:"rgba(255,255,255,0.045)",border:"1.5px solid rgba(255,255,255,0.1)",borderRadius:26,padding:"28px 24px",color:"#fff"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
-          <Btn small onClick={onBack}>←</Btn>
-          <h2 className="game-title" style={{margin:0,fontSize:"1.35rem"}}>{gameIcon} {gameTitle}</h2>
+      <div className="slide-in" style={{width:"100%",maxWidth:480,background:"rgba(255,255,255,0.045)",border:"1.5px solid rgba(255,255,255,0.1)",borderRadius:26,padding:"28px 24px",color:"#fff",maxHeight:"95vh",overflowY:"auto"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+          <Btn small onClick={step===1?onBack:()=>setStep(s=>s-1)}>←</Btn>
+          <h2 className="game-title" style={{margin:0,fontSize:"1.2rem"}}>{gameIcon} {gameTitle}</h2>
         </div>
-        <div style={{color:"#444",fontSize:"0.72rem",textTransform:"uppercase",letterSpacing:2,fontWeight:700,marginBottom:10}}>Game Mode</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
-          {[{id:"human",icon:"👥",label:"2 Players",sub:"Local multiplayer"},{id:"bot",icon:"🤖",label:"vs Bot",sub:"Play against AI"}].map(opt=>(
-            <button key={opt.id} onClick={()=>{setMode(opt.id);if(opt.id==="human")setDiff(null);}} style={{background:mode===opt.id?"rgba(124,58,237,0.28)":"rgba(255,255,255,0.04)",border:`2px solid ${mode===opt.id?"#7c3aed":"rgba(255,255,255,0.08)"}`,borderRadius:16,padding:"16px 10px",cursor:"pointer",fontFamily:"inherit",color:mode===opt.id?"#c4b5fd":"#888",textAlign:"center",transition:"all 0.2s"}}>
-              <div style={{fontSize:"2rem",marginBottom:4}}>{opt.icon}</div>
-              <div style={{fontWeight:800,fontSize:"0.88rem"}}>{opt.label}</div>
-              <div style={{fontSize:"0.66rem",marginTop:2,opacity:.7}}>{opt.sub}</div>
-            </button>
-          ))}
-        </div>
-        {mode==="bot"&&(
+        <ProgressBar total={4} current={step}/>
+
+        {/* STEP 1 — Mode & Difficulty */}
+        {step===1&&(
           <div className="slide-in">
-            <div style={{color:"#444",fontSize:"0.72rem",textTransform:"uppercase",letterSpacing:2,fontWeight:700,marginBottom:10}}>Difficulty</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
-              {Object.entries(DIFF_INFO).map(([id,d])=>(
-                <button key={id} onClick={()=>setDiff(id)} style={{background:diff===id?`${d.color}22`:"rgba(255,255,255,0.04)",border:`2px solid ${diff===id?d.color:"rgba(255,255,255,0.08)"}`,borderRadius:14,padding:"12px 10px",cursor:"pointer",fontFamily:"inherit",color:diff===id?d.color:"#777",textAlign:"center",transition:"all 0.2s"}}>
-                  <div style={{fontSize:"1.4rem",marginBottom:3}}>{d.icon}</div>
-                  <div style={{fontWeight:800,fontSize:"0.83rem"}}>{d.label}</div>
-                  <div style={{fontSize:"0.62rem",marginTop:2,opacity:.65}}>{d.desc}</div>
+            <div style={{color:"#444",fontSize:"0.72rem",textTransform:"uppercase",letterSpacing:2,fontWeight:700,marginBottom:10}}>Game Mode</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18}}>
+              {[{id:"human",icon:"👥",label:"2 Players",sub:"Local multiplayer"},{id:"bot",icon:"🤖",label:"vs Bot",sub:"Play against AI"}].map(opt=>(
+                <button key={opt.id} onClick={()=>{setMode(opt.id);if(opt.id==="human")setDiff(null);}} style={{background:mode===opt.id?"rgba(124,58,237,0.28)":"rgba(255,255,255,0.04)",border:`2px solid ${mode===opt.id?"#7c3aed":"rgba(255,255,255,0.08)"}`,borderRadius:16,padding:"16px 10px",cursor:"pointer",fontFamily:"inherit",color:mode===opt.id?"#c4b5fd":"#888",textAlign:"center",transition:"all 0.2s"}}>
+                  <div style={{fontSize:"2rem",marginBottom:4}}>{opt.icon}</div>
+                  <div style={{fontWeight:800,fontSize:"0.88rem"}}>{opt.label}</div>
+                  <div style={{fontSize:"0.66rem",marginTop:2,opacity:.7}}>{opt.sub}</div>
                 </button>
               ))}
             </div>
+            {mode==="bot"&&(
+              <div className="slide-in">
+                <div style={{color:"#444",fontSize:"0.72rem",textTransform:"uppercase",letterSpacing:2,fontWeight:700,marginBottom:10}}>Difficulty</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:18}}>
+                  {Object.entries(DIFF_INFO).map(([id,d])=>(
+                    <button key={id} onClick={()=>setDiff(id)} style={{background:diff===id?`${d.color}22`:"rgba(255,255,255,0.04)",border:`2px solid ${diff===id?d.color:"rgba(255,255,255,0.08)"}`,borderRadius:14,padding:"12px 10px",cursor:"pointer",fontFamily:"inherit",color:diff===id?d.color:"#777",textAlign:"center",transition:"all 0.2s"}}>
+                      <div style={{fontSize:"1.4rem",marginBottom:3}}>{d.icon}</div>
+                      <div style={{fontWeight:800,fontSize:"0.83rem"}}>{d.label}</div>
+                      <div style={{fontSize:"0.62rem",marginTop:2,opacity:.65}}>{d.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Btn onClick={confirmStep1} disabled={!canAdvanceStep1} color={canAdvanceStep1?"linear-gradient(135deg,#7c3aed,#4f46e5)":undefined} style={{width:"100%"}}>
+              {canAdvanceStep1?"Next: Pick Your Marker →":mode==="bot"?"Select a difficulty":"Select a mode"}
+            </Btn>
           </div>
         )}
-        <Btn onClick={()=>canStart&&onStart(mode==="human"?{vsBot:false}:{vsBot:true,difficulty:diff})} disabled={!canStart} color={canStart?"linear-gradient(135deg,#7c3aed,#4f46e5)":undefined} style={{width:"100%"}}>
-          {canStart?"▶ Start Game":mode==="bot"?"Select a difficulty":"Select a mode"}
-        </Btn>
+
+        {/* STEP 2 — Player 1 picks marker */}
+        {step===2&&(
+          <div className="slide-in">
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+              <div style={{width:10,height:10,borderRadius:"50%",background:"#ff4d6d",boxShadow:"0 0 8px #ff4d6d"}}/>
+              <span style={{color:"#ff4d6d",fontWeight:800,fontSize:"0.9rem"}}>Player 1{username?` (${username})`:""} — Pick Your Marker</span>
+            </div>
+            <div style={{color:"#555",fontSize:"0.72rem",marginBottom:10}}>
+              Your collection ({owned.length} markers). Unowned markers are dimmed.
+            </div>
+            <QuickMarkerGrid owned={owned} selected={marker1} onSelect={setMarker1} allMarkers={false}/>
+            {marker1&&(
+              <div style={{marginTop:10,display:"flex",alignItems:"center",gap:10,background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"10px 14px"}}>
+                <span style={{fontSize:"2rem"}}>{MARKERS_BY_ID[marker1]?.emoji}</span>
+                <div>
+                  <div style={{fontWeight:800,fontSize:"0.88rem"}}>{MARKERS_BY_ID[marker1]?.name}</div>
+                  <RarityTag rarity={MARKERS_BY_ID[marker1]?.rarity||"common"}/>
+                </div>
+              </div>
+            )}
+            <Btn onClick={confirmStep2} disabled={!marker1} color="linear-gradient(135deg,#7c3aed,#4f46e5)" style={{marginTop:14,width:"100%"}}>
+              {marker1?"Next →":"Select a marker first"}
+            </Btn>
+          </div>
+        )}
+
+        {/* STEP 3 — Player 2 / Bot marker */}
+        {step===3&&(
+          <div className="slide-in">
+            {mode==="bot"?(
+              <>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                  <div style={{width:10,height:10,borderRadius:"50%",background:"#4cc9f0",boxShadow:"0 0 8px #4cc9f0"}}/>
+                  <span style={{color:"#4cc9f0",fontWeight:800,fontSize:"0.9rem"}}>🤖 Pick the Bot&apos;s Marker</span>
+                </div>
+                <div style={{color:"#555",fontSize:"0.72rem",marginBottom:10}}>Choose any marker for your opponent!</div>
+                <QuickMarkerGrid owned={allIds} selected={marker2} onSelect={setMarker2} exclude={marker1} allMarkers={true}/>
+                {marker2&&(
+                  <div style={{marginTop:10,display:"flex",alignItems:"center",gap:10,background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"10px 14px"}}>
+                    <span style={{fontSize:"2rem"}}>{MARKERS_BY_ID[marker2]?.emoji}</span>
+                    <div><div style={{fontWeight:800,fontSize:"0.88rem"}}>{MARKERS_BY_ID[marker2]?.name}</div><RarityTag rarity={MARKERS_BY_ID[marker2]?.rarity||"common"}/></div>
+                  </div>
+                )}
+                <Btn onClick={()=>{const fallback=MARKERS.filter(m=>m.id!==marker1)[0];setMarker2(marker2||(fallback?.id||2));setStep(4);}} color="linear-gradient(135deg,#0891b2,#06b6d4)" style={{marginTop:14,width:"100%"}}>
+                  {marker2?"Next →":"Skip (random)"}
+                </Btn>
+              </>
+            ):(
+              <>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                  <div style={{width:10,height:10,borderRadius:"50%",background:"#4cc9f0",boxShadow:"0 0 8px #4cc9f0"}}/>
+                  <span style={{color:"#4cc9f0",fontWeight:800,fontSize:"0.9rem"}}>Player 2 — Pick Your Marker</span>
+                </div>
+                <div style={{color:"#555",fontSize:"0.72rem",marginBottom:10}}>
+                  Player 2 can pick from ALL markers or just their own collection.
+                </div>
+                <QuickMarkerGrid owned={owned} selected={marker2} onSelect={setMarker2} exclude={marker1} allMarkers={true}/>
+                {marker2&&(
+                  <div style={{marginTop:10,display:"flex",alignItems:"center",gap:10,background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"10px 14px"}}>
+                    <span style={{fontSize:"2rem"}}>{MARKERS_BY_ID[marker2]?.emoji}</span>
+                    <div><div style={{fontWeight:800,fontSize:"0.88rem"}}>{MARKERS_BY_ID[marker2]?.name}</div><RarityTag rarity={MARKERS_BY_ID[marker2]?.rarity||"common"}/></div>
+                  </div>
+                )}
+                {conflict&&<div className="slide-in" style={{marginTop:8,background:"rgba(244,63,94,0.15)",border:"1px solid rgba(244,63,94,0.4)",borderRadius:10,padding:"8px 12px",color:"#f43f5e",fontWeight:700,fontSize:"0.82rem"}}>⚠️ Player 1 already claimed that marker! Choose another.</div>}
+                <Btn onClick={confirmStep3} disabled={!marker2} color="linear-gradient(135deg,#0891b2,#06b6d4)" style={{marginTop:14,width:"100%"}}>
+                  {marker2?"Next →":"Select a marker"}
+                </Btn>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* STEP 4 — VS screen */}
+        {step===4&&(
+          <div className="slide-in" style={{textAlign:"center"}}>
+            <div style={{fontSize:"2rem",marginBottom:16}}>⚔️ Ready to Play!</div>
+            <div style={{display:"flex",justifyContent:"center",gap:24,marginBottom:24,flexWrap:"wrap"}}>
+              <div style={{background:"rgba(255,77,109,0.1)",border:"1.5px solid rgba(255,77,109,0.3)",borderRadius:20,padding:"20px 24px",minWidth:120}}>
+                <div style={{fontSize:"3.5rem",marginBottom:8,filter:"drop-shadow(0 0 12px rgba(255,77,109,0.6))"}}>{MARKERS_BY_ID[marker1]?.emoji||"✕"}</div>
+                <div style={{color:"#ff4d6d",fontWeight:800,fontSize:"0.9rem",marginBottom:4}}>Player 1</div>
+                <div style={{fontSize:"0.75rem",color:"#aaa",marginBottom:4}}>{MARKERS_BY_ID[marker1]?.name}</div>
+                <RarityTag rarity={MARKERS_BY_ID[marker1]?.rarity||"common"}/>
+              </div>
+              <div style={{color:"#555",fontWeight:900,fontSize:"1.8rem",alignSelf:"center"}}>VS</div>
+              <div style={{background:"rgba(76,201,240,0.1)",border:"1.5px solid rgba(76,201,240,0.3)",borderRadius:20,padding:"20px 24px",minWidth:120}}>
+                <div style={{fontSize:"3.5rem",marginBottom:8,filter:"drop-shadow(0 0 12px rgba(76,201,240,0.6))"}}>{MARKERS_BY_ID[marker2]?.emoji||"○"}</div>
+                <div style={{color:"#4cc9f0",fontWeight:800,fontSize:"0.9rem",marginBottom:4}}>{mode==="bot"?"Bot":"Player 2"}</div>
+                <div style={{fontSize:"0.75rem",color:"#aaa",marginBottom:4}}>{MARKERS_BY_ID[marker2]?.name}</div>
+                <RarityTag rarity={MARKERS_BY_ID[marker2]?.rarity||"common"}/>
+              </div>
+            </div>
+            {mode==="bot"&&<div style={{marginBottom:14}}><DiffBadge difficulty={diff}/></div>}
+            <Btn onClick={launch} color="linear-gradient(135deg,#7c3aed,#4f46e5)" style={{width:"100%",fontSize:"1.1rem",padding:"14px",letterSpacing:.5}}>
+              🎮 LET&apos;S PLAY!
+            </Btn>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -850,8 +1029,18 @@ function NxNGame({size,winLen,title,icon,onBack,vsBot,difficulty,onGameEnd,names
         <div style={{display:"grid",gridTemplateColumns:`repeat(${size},${cellPx}px)`,gap}}>
           {board.map((v,i)=>{
             const p=PLAYERS[v];
+            const isEmoji=v&&sym(v)&&sym(v).length>0&&![..."✕○"].includes(sym(v)[0]);
             return(
-              <button key={i} onClick={()=>humanClick(i)} style={{width:cellPx,height:cellPx,borderRadius:size>7?6:12,border:`2px solid ${v?p.border:"rgba(255,255,255,0.09)"}`,background:v?p.bg:"rgba(255,255,255,0.03)",color:v?p.color:"transparent",fontSize:fSize,fontWeight:900,cursor:(!v&&!winner&&!draw&&!blockBot&&!botThinking)?"pointer":"default",textShadow:v?`0 0 12px ${p.color}`:"none",animation:newCells.has(i)?"pop 0.25s ease-out":"none",transition:"all 0.12s",fontFamily:"inherit"}}
+              <button key={i} onClick={()=>humanClick(i)} style={{width:cellPx,height:cellPx,borderRadius:size>7?6:12,
+                border:`2px solid ${v?p.border:"rgba(255,255,255,0.09)"}`,
+                background:v?p.bg:"rgba(255,255,255,0.03)",
+                color:v?p.color:"transparent",
+                fontSize:isEmoji?(size<=3?"2.6rem":size<=5?"1.9rem":size<=7?"1.35rem":"1.05rem"):fSize,
+                fontWeight:900,cursor:(!v&&!winner&&!draw&&!blockBot&&!botThinking)?"pointer":"default",
+                textShadow:isEmoji?"none":(v?`0 0 12px ${p.color}`:"none"),
+                filter:isEmoji&&v?`drop-shadow(0 0 6px ${p.color})`:"none",
+                animation:newCells.has(i)?"pop 0.25s ease-out":"none",transition:"all 0.12s",fontFamily:"inherit",
+                lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}
                 onMouseEnter={e=>{if(!v&&!winner&&!draw&&!blockBot&&!botThinking)e.currentTarget.style.background=PLAYERS[turn].bg;}}
                 onMouseLeave={e=>{if(!v)e.currentTarget.style.background="rgba(255,255,255,0.03)";}}>
                 {v?sym(v):""}
@@ -930,7 +1119,7 @@ function ArcheryGame({onBack,vsBot,difficulty,onGameEnd,names,markerSyms}){
             const isAimed=aimed===i,isMissed=missedCell===i;const p=PLAYERS[v];
             return(
               <button key={i} onClick={()=>{if(!shooting&&!winner&&!draw&&isHumanTurn&&!botThinking)setAimed(i===aimed?null:i);}}
-                style={{width:80,height:80,borderRadius:16,border:isAimed?"3px solid #facc15":`2px solid ${v?p.border:"rgba(255,255,255,0.1)"}`,background:isAimed?"rgba(250,204,21,0.15)":v?p.bg:isMissed?"rgba(255,100,100,0.12)":"rgba(255,255,255,0.03)",color:v?p.color:isAimed?"#facc15":"#333",fontSize:"2rem",fontWeight:900,cursor:(shooting||!isHumanTurn||botThinking)?"not-allowed":"pointer",transition:"all 0.13s",transform:isAimed?"scale(1.08)":isMissed?"scale(0.93)":"scale(1)",animation:isMissed?"shake 0.3s ease-in-out":"none",textShadow:v?`0 0 12px ${p.color}`:"none",fontFamily:"inherit"}}>
+                style={{width:80,height:80,borderRadius:16,border:isAimed?"3px solid #facc15":`2px solid ${v?p.border:"rgba(255,255,255,0.1)"}`,background:isAimed?"rgba(250,204,21,0.15)":v?p.bg:isMissed?"rgba(255,100,100,0.12)":"rgba(255,255,255,0.03)",color:v?p.color:isAimed?"#facc15":"#333",fontSize:(v&&sym(v)&&![..."✕○"].includes(sym(v)[0]))?"2.4rem":"2rem",fontWeight:900,cursor:(shooting||!isHumanTurn||botThinking)?"not-allowed":"pointer",transition:"all 0.13s",transform:isAimed?"scale(1.08)":isMissed?"scale(0.93)":"scale(1)",animation:isMissed?"shake 0.3s ease-in-out":"none",textShadow:(v&&sym(v)&&![..."✕○"].includes(sym(v)[0]))?"none":(v?`0 0 12px ${p.color}`:"none"),filter:(v&&sym(v)&&![..."✕○"].includes(sym(v)[0])&&v)?`drop-shadow(0 0 8px ${p.color})`:"none",fontFamily:"inherit",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
                 {v?sym(v):isAimed?"🎯":""}
               </button>
             );
@@ -969,8 +1158,17 @@ function Game3D({onBack,vsBot,difficulty,onGameEnd,names,markerSyms}){
             <div style={{background:`${lC[l]}22`,border:`1.5px solid ${lC[l]}55`,borderRadius:10,padding:"4px 12px",color:lC[l],fontSize:"0.7rem",fontWeight:700,marginBottom:8}}>{lN[l]}</div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,64px)",gap:7}}>
               {[0,1,2].map(r=>[0,1,2].map(c=>{const i=l*9+r*3+c;const v=board[i];const p=PLAYERS[v];
+                const is3DEmoji=v&&sym(v)&&![..."✕○"].includes(sym(v)[0]);
                 return(
-                  <button key={`${l}${r}${c}`} onClick={()=>humanClick(l,r,c)} style={{width:64,height:64,borderRadius:14,border:`2px solid ${v?p.border:`${lC[l]}33`}`,background:v?p.bg:`${lC[l]}08`,color:v?p.color:"transparent",fontSize:"1.7rem",fontWeight:900,cursor:(!v&&!winner&&!draw&&!(vsBot&&turn===2)&&!botThinking)?"pointer":"default",animation:newCells.has(i)?"pop 0.25s ease-out":"none",transition:"all 0.12s",textShadow:v?`0 0 12px ${p.color}`:"none",fontFamily:"inherit"}}
+                  <button key={`${l}${r}${c}`} onClick={()=>humanClick(l,r,c)} style={{width:64,height:64,borderRadius:14,
+                    border:`2px solid ${v?p.border:`${lC[l]}33`}`,background:v?p.bg:`${lC[l]}08`,
+                    color:v?p.color:"transparent",
+                    fontSize:is3DEmoji?"2rem":"1.7rem",
+                    fontWeight:900,cursor:(!v&&!winner&&!draw&&!(vsBot&&turn===2)&&!botThinking)?"pointer":"default",
+                    animation:newCells.has(i)?"pop 0.25s ease-out":"none",transition:"all 0.12s",
+                    textShadow:is3DEmoji?"none":(v?`0 0 12px ${p.color}`:"none"),
+                    filter:is3DEmoji&&v?`drop-shadow(0 0 6px ${p.color})`:"none",
+                    fontFamily:"inherit",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}
                     onMouseEnter={e=>{if(!v&&!winner&&!draw&&!(vsBot&&turn===2)&&!botThinking)e.currentTarget.style.background=`${lC[l]}22`;}}
                     onMouseLeave={e=>{if(!v)e.currentTarget.style.background=`${lC[l]}08`;}}>
                     {v?sym(v):""}
@@ -1056,7 +1254,7 @@ function CustomGame({onBack,vsBot,difficulty,onGameEnd,names,markerSyms}){
             if(!activeCells.has(k))return<div key={i} style={{width:44,height:44}}/>;
             const v=board[k]||0;const p=PLAYERS[v];
             return(
-              <button key={i} onClick={()=>humanClick(r,c)} style={{width:44,height:44,borderRadius:9,border:`2px solid ${v?p.border:"rgba(20,184,166,0.28)"}`,background:v?p.bg:"rgba(20,184,166,0.05)",color:v?p.color:"transparent",fontSize:"1.3rem",fontWeight:900,cursor:(!v&&!winner&&!draw&&!(vsBot&&turn===2)&&!botThinking)?"pointer":"default",textShadow:v?`0 0 10px ${p.color}`:"none",transition:"all 0.12s",fontFamily:"inherit"}}
+              <button key={i} onClick={()=>humanClick(r,c)} style={{width:44,height:44,borderRadius:9,border:`2px solid ${v?p.border:"rgba(20,184,166,0.28)"}`,background:v?p.bg:"rgba(20,184,166,0.05)",color:v?p.color:"transparent",fontSize:(v&&sym(v)&&![..."✕○"].includes(sym(v)[0]))?"1.6rem":"1.3rem",fontWeight:900,cursor:(!v&&!winner&&!draw&&!(vsBot&&turn===2)&&!botThinking)?"pointer":"default",textShadow:(v&&sym(v)&&![..."✕○"].includes(sym(v)[0]))?"none":(v?`0 0 10px ${p.color}`:"none"),filter:(v&&sym(v)&&![..."✕○"].includes(sym(v)[0])&&v)?`drop-shadow(0 0 6px ${p.color})`:"none",transition:"all 0.12s",fontFamily:"inherit",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}
                 onMouseEnter={e=>{if(!v&&!winner&&!draw&&!(vsBot&&turn===2)&&!botThinking)e.currentTarget.style.background=PLAYERS[turn].bg;}}
                 onMouseLeave={e=>{if(!v)e.currentTarget.style.background="rgba(20,184,166,0.05)";}}>
                 {v?sym(v):""}
@@ -1823,7 +2021,7 @@ function TicTacFun(){
 
   if(screen==="setup"&&selectedGame){
     const meta=GAME_META[selectedGame];
-    return<><GlobalStyles/><SetupScreen gameTitle={meta.title} gameIcon={meta.icon} onBack={()=>setScreen("menu")} onStart={s=>{setGameSettings(s);if(isXtraFunGame)setScreen("prematch");else setScreen("game");}}/></>;
+    return<><GlobalStyles/><SetupScreen gameTitle={meta.title} gameIcon={meta.icon} xtraData={xtraData} username={user} onBack={()=>setScreen("menu")} onStart={s=>{setGameSettings(s);if(isXtraFunGame)setScreen("prematch");else setScreen("game");}}/></>;
   }
 
   if(screen==="prematch"&&selectedGame&&gameSettings){
@@ -1833,10 +2031,13 @@ function TicTacFun(){
   }
 
   if(screen==="game"&&selectedGame&&gameSettings){
-    const{vsBot,difficulty}=gameSettings;
+    const{vsBot,difficulty,markerEmoji1,markerEmoji2}=gameSettings;
     const meta=GAME_META[selectedGame];
     const names=preMatchData?[preMatchData.name1,preMatchData.name2]:null;
-    const markerSyms=preMatchData?[preMatchData.marker1,preMatchData.marker2]:null;
+    // Use preMatchData markers (Xtra Fun) OR the markers chosen in SetupScreen
+    const markerSyms=preMatchData
+      ?[preMatchData.marker1,preMatchData.marker2]
+      :markerEmoji1?[markerEmoji1,markerEmoji2||"○"]:null;
     const back=()=>{if(isXtraFunGame)setScreen("xtra");else goBack();};
     const gameEnd=makeGameEnd(selectedGame);
     const props={onBack:back,vsBot,difficulty,onGameEnd:gameEnd,names,markerSyms};
@@ -1851,13 +2052,11 @@ function TicTacFun(){
 }
 
 
-    // Mount the app
-    const container = document.getElementById('root');
-    const root = ReactDOM.createRoot(container);
-    root.render(React.createElement(TicTacFun));
-    
-    // Hide loading screen
-    document.getElementById('loading').style.display = 'none';
+  // Mount
+  const container = document.getElementById('root');
+  const root = ReactDOM.createRoot(container);
+  root.render(React.createElement(TicTacFun));
+  document.getElementById('loading').style.display = 'none';
   </script>
 </body>
 </html>
