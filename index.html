@@ -671,7 +671,18 @@ function SetupScreen({gameTitle,gameIcon,onBack,onStart,xtraData,username}){
 
   const confirmStep1=()=>{ if(canAdvanceStep1) setStep(2); };
 
-  const confirmStep2=()=>{ if(!marker1) return; setStep(3); };
+  const confirmStep2=()=>{
+    if(!marker1) return;
+    if(mode==="bot"){
+      // Bot picks its own random marker (different from player 1's)
+      const pool=MARKERS.filter(m=>m.id!==marker1);
+      const botPick=pool[Math.floor(Math.random()*pool.length)];
+      setMarker2(botPick.id);
+      setStep(4); // skip step 3 entirely for bots
+    } else {
+      setStep(3);
+    }
+  };
 
   const confirmStep3=()=>{
     if(mode==="human"&&!marker2)return;
@@ -730,7 +741,7 @@ function SetupScreen({gameTitle,gameIcon,onBack,onStart,xtraData,username}){
           <Btn small onClick={step===1?onBack:()=>setStep(s=>s-1)}>←</Btn>
           <h2 className="game-title" style={{margin:0,fontSize:"1.2rem"}}>{gameIcon} {gameTitle}</h2>
         </div>
-        <ProgressBar total={4} current={step}/>
+        <ProgressBar total={mode==="bot"?3:4} current={step>3&&mode==="bot"?3:step}/>
 
         {/* STEP 1 — Mode & Difficulty */}
         {step===1&&(
